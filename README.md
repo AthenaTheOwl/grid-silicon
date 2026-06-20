@@ -4,7 +4,7 @@ Phantom-vs-real capacity engine for announced US data-center gigawatts. Fuses
 satellite, permit, interconnection-queue, and equipment-order signals into
 one confidence score per project, refreshed monthly.
 
-## What this is
+## what this is
 
 SemiAnalysis estimates 311 of 410 GW in the ERCOT large-load queue is phantom.
 PJM's Dec 2025 capacity auction cleared 6.6 GW short. Transformer lead times
@@ -19,68 +19,73 @@ interactive Cytoscape graph, updated monthly.
 
 Bucket: ai-infra. Category: ai-infra. Brand prefix: `GRDS`.
 
-## Who this is for
+## who this is for
 
 - Long/short equity desks trading utility, REIT, and semis names.
 - Infrastructure private-credit underwriters at Apollo, Blackstone, Brookfield.
 - Hyperscaler corporate-development siting teams.
 - ISO resource-planning groups.
 
-## Status
+## status
 
-v0 scaffold. No implementation yet. The first PR after this scaffold lands the
-ERCOT queue ingest plus the realness-score schema; see `docs/first-pr.md`.
+v0.1 pilot. The repo now has a fixture-first ERCOT row pipeline:
 
-## How to run
+- parser for a committed ERCOT-shaped fixture
+- deterministic `realness_score`
+- `reports/2026-05.jsonl` with one phantom-vs-real row
+- schema, traceability, and voice checks
+- tests for parser, scoring, CLI, and report validation
 
-Placeholder. Run commands will land in spec `0002-ercot-ingest`. The shape
-will be:
+Live ERCOT portal fetch is deferred. The public data portal requires terms
+acceptance and API registration. The command refuses live fetch unless a later
+registered adapter is added.
+
+## how to run
+
+From a fresh checkout:
 
 ```powershell
-uv sync
-uv run python -m gridsilicon ingest ercot --quarter 2026q2
-uv run python -m gridsilicon score --queue data/ercot_queue_2026q2.parquet
-uv run python -m gridsilicon render report --out reports/2026-07-ercot.md
+python -m grid_silicon ingest --iso ercot --month 2026-05 --dry-run
+python -m grid_silicon validate
+python -m pytest tests/ -q
+python scripts/validate_schemas.py
+python scripts/traceability.py
+python scripts/voice_lint.py
 ```
 
-## Layout
+The first command writes `reports/2026-05.jsonl`. In v0.1, `--dry-run` means
+"use committed fixture data." It still writes the local output artifact.
+
+## layout
 
 ```
-gridsilicon/
+grid-silicon/
   AGENTS.md
   LICENSE
   README.md
+  pyproject.toml
+  grid_silicon.py       # root shim for python -m grid_silicon
+  src/grid_silicon/     # parser, scorer, cli, validators
+  data/fixtures/ercot/2026-05/
+  reports/2026-05.jsonl
+  schemas/
+  scripts/
+  tests/
   specs/
     0001-foundation/
-      requirements.md
-      design.md
-      tasks.md
-      acceptance.md
-  docs/
-    first-pr.md
-  src/
-    fusion/             # entity resolution across queue, permit, satellite
-    scoring/            # realness_score.py
-    render/             # cytoscape_export, report templates
-  data/                 # parquet snapshots per ISO per quarter (gitignored cache)
-  reports/              # checked-in monthly publications
-  eval/                 # brier_backtest.py and calibration
-  decisions/            # DEC-GRDS-* architectural choices
+    0002-design/
+  decisions/DEC-GRDS-001-realness-score-schema.md
 ```
 
-The directories named under `src/`, `data/`, `reports/`, `eval/`, and
-`decisions/` are the targets the first real PR will create. The scaffold
-does not create empty source folders.
-
-## Compounds with
+## compounds with
 
 - InterconnectAlpha as the survival-model and capacity-curve analytics module.
 - SiteAtlas as the civic-data frontend over the same project graph.
 - RatepayerExposure as the bill-impact derivative.
-- RobustSiting as the optimization input layer.
+- Siting optimization lab as the optimization input layer.
 - FabRiskRADAR via the shared chip-supply-chain-map infrastructure.
 - WaferToWatt as the silicon-side complement.
 
-## License
+## license
 
 MIT. See [LICENSE](LICENSE).

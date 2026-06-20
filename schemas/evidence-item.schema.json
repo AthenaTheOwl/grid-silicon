@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://athenatheowl.github.io/grid-silicon/schemas/evidence-item.schema.json",
+  "title": "GridSilicon evidence item",
+  "type": "object",
+  "required": ["evidence_id", "category", "label", "source_url", "extracted_on", "weight"],
+  "additionalProperties": false,
+  "properties": {
+    "evidence_id": {"type": "string"},
+    "category": {"type": "string"},
+    "label": {"type": "string"},
+    "source_url": {"type": "string"},
+    "extracted_on": {"type": "string"},
+    "weight": {"type": "integer", "minimum": 0}
+  }
+}

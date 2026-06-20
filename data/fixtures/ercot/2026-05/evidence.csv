@@ -1,0 +1,6 @@
+evidence_id,project_id_raw,category,label,source_url,extracted_on,weight
+EV-GRDS-001,LL-2026-001,queue_status,ERCOT large-load status update names observed and review states,https://www.ercot.com/services/rq/large-load-integration,2026-06-20,3
+EV-GRDS-002,LL-2026-001,energization,Fixture observation records partial energized load,https://www.ercot.com/services/mdt/data-portal,2026-06-20,2
+EV-GRDS-003,LL-2026-001,permit,County permit fixture exists but is not yet advanced,https://www.ercot.com/files/docs/2026/03/12/March-TAC-Report.pdf,2026-06-20,2
+EV-GRDS-004,LL-2026-001,equipment,No committed transformer evidence in fixture,https://www.nerc.com/globalassets/who-we-are/standing-committees/rstc/whitepaper-characteristics-and-risks-of-emerging-large-loads.pdf,2026-06-20,1
+EV-GRDS-005,LL-2026-001,counterparty,No named counterparty disclosure in fixture,https://www.ercot.com/files/docs/2026/04/09/ERCOTLargeLoadUpdate-April9HouseStateAffairsHearing.pdf,2026-06-20,1
