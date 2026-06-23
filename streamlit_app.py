@@ -91,7 +91,65 @@ if shown:
                 f"  source: {ev.get('source_url')}"
             )
 
+# ---------------------------------------------------------------------------
+# Run the real scoring engine live. This is not a viewer — the sliders below
+# call grid_silicon.scoring.compute_realness_score, the same function that
+# produced the committed report. Change the inputs, watch realness move.
+# ---------------------------------------------------------------------------
+st.divider()
+st.subheader("score a project yourself")
+st.caption("drive the actual realness engine — `grid_silicon.scoring.compute_realness_score` — with your own inputs.")
+
+try:
+    import sys
+    sys.path.insert(0, str(REPO / "src"))
+    from grid_silicon.models import EnergizationObservation, EvidenceItem, QueueProject
+    from grid_silicon.scoring import STATUS_POINTS, compute_realness_score
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        announced = st.number_input("announced MW", min_value=1.0, max_value=5000.0, value=1200.0, step=50.0)
+        observed = st.slider("observed energized MW", 0.0, float(announced), min(120.0, float(announced)), step=10.0)
+    with col_b:
+        status = st.selectbox("ERCOT interconnection status", list(STATUS_POINTS), index=1)
+        evidence_cats = st.multiselect(
+            "evidence categories on file",
+            ["queue_status", "energization", "permit", "equipment", "filing"],
+            default=["queue_status", "energization"],
+        )
+
+    project = QueueProject(
+        project_id_raw="user-input", project_name="your project", county="—",
+        mw_requested=announced, requested_in_service="2027", status_code=status, last_updated="2026-06",
+    )
+    obs = EnergizationObservation(
+        project_id_raw="user-input", observed_energized_mw=observed,
+        approval_status=status, observed_on="2026-06",
+    )
+    ev_items = [
+        EvidenceItem(evidence_id=f"EV-{i}", project_id_raw="user-input", category=c,
+                     label=c, source_url="https://example", extracted_on="2026-06", weight=2)
+        for i, c in enumerate(evidence_cats)
+    ]
+    score = compute_realness_score(project, obs, ev_items)
+    phantom = max(0.0, announced - observed)
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("realness score", f"{score}/100")
+    m2.metric("phantom MW", f"{phantom:,.0f} MW")
+    m3.metric("status floor", f"{STATUS_POINTS[status]} pts")
+    if score >= 70:
+        st.success(f"realness {score}/100 — this reads as a real, energizing project.")
+    elif score >= 40:
+        st.warning(f"realness {score}/100 — partially real; meaningful announced capacity is still phantom.")
+    else:
+        st.error(f"realness {score}/100 — mostly phantom: announced but not backed by interconnection progress.")
+    st.caption("move observed MW up, advance the status, or add evidence categories and watch the score recompute — it's the live engine, not a lookup.")
+except Exception as exc:  # pragma: no cover - defensive for cloud import differences
+    st.info(f"interactive scoring needs the package importable ({exc}). the committed report above still renders.")
+
 st.caption(
     "v0.1 ships one ERCOT fixture month. the model + scoring live in `src/grid_silicon/`; "
-    "this page reads the committed `reports/*.jsonl`. repo: github.com/AthenaTheOwl/grid-silicon"
+    "the table reads the committed `reports/*.jsonl` and the scorer above is the real engine. "
+    "repo: github.com/AthenaTheOwl/grid-silicon"
 )

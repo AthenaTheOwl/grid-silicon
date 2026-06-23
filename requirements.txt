@@ -1,4 +1,5 @@
-# Streamlit Community Cloud reads this file. The app (streamlit_app.py) reads the
-# committed reports/*.jsonl directly, so it only needs streamlit. The CLI/package
-# under src/grid_silicon/ has its own deps in pyproject.toml.
+# Streamlit Community Cloud reads this file. The app reads the committed
+# reports/*.jsonl directly AND drives the real scoring engine, so it installs
+# the local package (`.`) to import grid_silicon.scoring.compute_realness_score.
 streamlit>=1.40
+.
