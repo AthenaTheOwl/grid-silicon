@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import json
+
 from .ercot import (
     default_fixture_dir,
     load_evidence,
@@ -19,6 +21,43 @@ from .validation import validate_reports
 
 def _repo_root() -> Path:
     return Path.cwd()
+
+
+def _latest_report(root: Path) -> Path | None:
+    reports = sorted((root / "reports").glob("*.jsonl"))
+    return reports[-1] if reports else None
+
+
+def _run_show(args: argparse.Namespace) -> int:
+    """Print a readable, ranked view of a generated report (no args needed)."""
+    root = _repo_root()
+    path = Path(args.report) if args.report else _latest_report(root)
+    if path is None or not path.is_file():
+        raise SystemExit("no report found under reports/*.jsonl — run `ingest --month <m> --dry-run` first")
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows.sort(key=lambda r: r.get("phantom_mw", 0), reverse=True)
+    print(f"grid-silicon — datacenter-load realness, {path.stem} ({rows[0].get('iso', '?').upper()})")
+    print(f"{len(rows)} project(s), ranked by phantom MW (announced minus observed-energized)\n")
+    header = f"{'project':<28} {'county':<10} {'announced':>10} {'energized':>10} {'phantom':>9} {'realness':>9}  status"
+    print(header)
+    print("-" * len(header))
+    for r in rows:
+        print(
+            f"{r.get('project_name', r['project_id'])[:28]:<28} "
+            f"{r.get('county', '?')[:10]:<10} "
+            f"{r.get('mw_announced', 0):>8.0f}MW "
+            f"{r.get('mw_observed_energized', 0):>8.0f}MW "
+            f"{r.get('phantom_mw', 0):>7.0f}MW "
+            f"{r.get('realness_score', 0):>8}/100  "
+            f"{r.get('status_code', '?')}"
+        )
+    worst = rows[0]
+    print(
+        f"\nbiggest gap: {worst.get('project_name', worst['project_id'])} in {worst.get('county')} county — "
+        f"{worst.get('phantom_mw', 0):.0f}MW announced but not yet energized "
+        f"({len(worst.get('evidence_ids', []))} sourced evidence rows). realness {worst.get('realness_score')}/100."
+    )
+    return 0
 
 
 def _run_ingest(args: argparse.Namespace) -> int:
@@ -75,6 +114,9 @@ def build_parser() -> argparse.ArgumentParser:
     ingest.set_defaults(func=_run_ingest)
     validate = sub.add_parser("validate", help="validate generated reports")
     validate.set_defaults(func=_run_validate)
+    show = sub.add_parser("show", help="print a readable ranked view of the latest report")
+    show.add_argument("--report", default=None, help="path to a report jsonl (default: latest under reports/)")
+    show.set_defaults(func=_run_show)
     return parser
 
 

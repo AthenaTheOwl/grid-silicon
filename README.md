@@ -56,6 +56,30 @@ python scripts/voice_lint.py
 The first command writes `reports/2026-05.jsonl`. In v0.1, `--dry-run` means
 "use committed fixture data." It still writes the local output artifact.
 
+## try it
+
+One command, no setup, reads the committed report and prints the result:
+
+```powershell
+python -m grid_silicon show
+```
+
+```
+grid-silicon — datacenter-load realness, 2026-05 (ERCOT)
+1 project(s), ranked by phantom MW (announced minus observed-energized)
+
+project                      county      announced  energized   phantom  realness  status
+-----------------------------------------------------------------------------------------
+Lone Star Compute Campus     Ellis          1200MW      120MW    1080MW       37/100  under_ercot_review
+
+biggest gap: Lone Star Compute Campus in Ellis county — 1080MW announced but not
+yet energized (5 sourced evidence rows). realness 37/100.
+```
+
+The point: a lot of announced datacenter load is "phantom" — named in a queue but
+not energized. `show` ranks projects by that gap so you see which announcements are
+backed by real interconnection progress and which aren't.
+
 ## layout
 
 ```
