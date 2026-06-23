@@ -80,6 +80,24 @@ The point: a lot of announced datacenter load is "phantom" — named in a queue 
 not energized. `show` ranks projects by that gap so you see which announcements are
 backed by real interconnection progress and which aren't.
 
+## live demo
+
+A Streamlit app (`streamlit_app.py`) wraps the same result as an interactive page —
+the realness table, the announced/energized/phantom metrics, and the per-project
+evidence. It reads the committed report; no network, no secrets.
+
+Run it locally:
+
+```powershell
+python -m pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+Live: deploy on [Streamlit Community Cloud](https://share.streamlit.io) — new app,
+repo `AthenaTheOwl/grid-silicon`, branch `main`, main file `streamlit_app.py`.
+
+<!-- once deployed, add: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://<your-app>.streamlit.app) -->
+
 ## layout
 
 ```
