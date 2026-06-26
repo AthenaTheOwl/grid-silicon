@@ -1,64 +1,30 @@
-# GridSilicon
+# grid-silicon
 
-Phantom-vs-real capacity engine for announced US data-center gigawatts. Fuses
-satellite, permit, interconnection-queue, and equipment-order signals into
-one confidence score per project, refreshed monthly.
+A datacenter is announced as 1,200 megawatts. One hundred twenty are actually
+energized. The other 1,080 live on a form. grid-silicon scores the difference.
 
-## what this is
+## What it does
 
-SemiAnalysis estimates 311 of 410 GW in the ERCOT large-load queue is phantom.
-PJM's Dec 2025 capacity auction cleared 6.6 GW short. Transformer lead times
-run four to five years. The gap between announcement and energization is now
-the most valuable number in infrastructure investing, and no one has fused
-the public layers into a single score with the evidence behind it.
+Half the gigawatts in the headlines do not exist yet. SemiAnalysis figures 311 of
+the 410 GW sitting in the ERCOT large-load queue are phantom — names in a database,
+not load on a wire. PJM's December 2025 capacity auction still cleared 6.6 GW short.
+Transformers run four to five years out. The interesting number in infrastructure
+right now is the gap between what got announced and what got built, and the public
+signals that would close it — satellite, permits, queue status, equipment orders —
+sit in separate places where nobody has added them up.
 
-GridSilicon is the data layer. The first artifact is an ERCOT-only static
-report — every large-load queue project ranked by a 0-100 "real" score, with
-the five evidence items behind each score, shipped as a public PDF plus an
-interactive Cytoscape graph, updated monthly.
+grid-silicon adds them up. It takes a published large-load project, scores it 0 to
+100 on how real it is, and shows the five sourced pieces of evidence behind the
+score. v0.1 ships one ERCOT month as a checked-in report. The model and the scorer
+are the point; the data adapter is deliberately small.
 
-Bucket: ai-infra. Category: ai-infra. Brand prefix: `GRDS`.
+It refuses to fetch the live ERCOT portal, by the way. The portal wants terms
+acceptance and API registration, which is a human's signature, not a script's. So
+the tool waits for the form to be signed instead of pretending it already was.
 
-## who this is for
+## Try it
 
-- Long/short equity desks trading utility, REIT, and semis names.
-- Infrastructure private-credit underwriters at Apollo, Blackstone, Brookfield.
-- Hyperscaler corporate-development siting teams.
-- ISO resource-planning groups.
-
-## status
-
-v0.1 pilot. The repo now has a fixture-first ERCOT row pipeline:
-
-- parser for a committed ERCOT-shaped fixture
-- deterministic `realness_score`
-- `reports/2026-05.jsonl` with one phantom-vs-real row
-- schema, traceability, and voice checks
-- tests for parser, scoring, CLI, and report validation
-
-Live ERCOT portal fetch is deferred. The public data portal requires terms
-acceptance and API registration. The command refuses live fetch unless a later
-registered adapter is added.
-
-## how to run
-
-From a fresh checkout:
-
-```powershell
-python -m grid_silicon ingest --iso ercot --month 2026-05 --dry-run
-python -m grid_silicon validate
-python -m pytest tests/ -q
-python scripts/validate_schemas.py
-python scripts/traceability.py
-python scripts/voice_lint.py
-```
-
-The first command writes `reports/2026-05.jsonl`. In v0.1, `--dry-run` means
-"use committed fixture data." It still writes the local output artifact.
-
-## try it
-
-One command, no setup, reads the committed report and prints the result:
+One command, no setup, no keys. It reads the committed report and prints the result:
 
 ```powershell
 python -m grid_silicon show
@@ -76,17 +42,16 @@ biggest gap: Lone Star Compute Campus in Ellis county — 1080MW announced but n
 yet energized (5 sourced evidence rows). realness 37/100.
 ```
 
-The point: a lot of announced datacenter load is "phantom" — named in a queue but
-not energized. `show` ranks projects by that gap so you see which announcements are
-backed by real interconnection progress and which aren't.
+Ranked by phantom MW, worst offender first. A project at the top of that list is an
+announcement; a project at the bottom is a build.
 
-## live demo
+## Live demo
 
-A Streamlit app (`streamlit_app.py`) wraps the same result as an interactive page —
-the realness table, the announced/energized/phantom metrics, and the per-project
-evidence. It reads the committed report; no network, no secrets.
-
-Run it locally:
+`streamlit_app.py` is the same result as a page you can poke: the realness table,
+the announced/energized/phantom split, the evidence per project, and a scorer you
+can drive yourself — move the observed megawatts, advance the interconnection
+status, watch the score climb from "mostly form" to "mostly real." It reads the
+committed report. No network, no secrets.
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -96,38 +61,42 @@ streamlit run streamlit_app.py
 Live: deploy on [Streamlit Community Cloud](https://share.streamlit.io) — new app,
 repo `AthenaTheOwl/grid-silicon`, branch `main`, main file `streamlit_app.py`.
 
-<!-- once deployed, add: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://<your-app>.streamlit.app) -->
+<!-- once deployed: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://<your-app>.streamlit.app) -->
 
-## layout
+## How it connects
+
+grid-silicon is the data floor under the energy line. The others build on the same
+project graph:
+
+- [interconnect-alpha](https://github.com/AthenaTheOwl/interconnect-alpha) — the
+  survival model: probability a queued project ever reaches commercial operation.
+- [site-atlas](https://github.com/AthenaTheOwl/site-atlas) — the civic-data front
+  end over the same queue.
+- [ratepayer-exposure](https://github.com/AthenaTheOwl/ratepayer-exposure) — what
+  the buildout does to one household's power bill.
+- [chip-supply-chain-map](https://github.com/AthenaTheOwl/chip-supply-chain-map) /
+  [fab-risk-radar](https://github.com/AthenaTheOwl/fab-risk-radar) — the silicon
+  side of the same demand curve.
+
+## Run it in full
+
+```powershell
+python -m grid_silicon ingest --iso ercot --month 2026-05 --dry-run   # writes reports/2026-05.jsonl
+python -m grid_silicon validate
+python -m pytest tests/ -q
+```
+
+`--dry-run` means "use the committed fixture." It still writes the output artifact.
+
+## Layout
 
 ```
-grid-silicon/
-  AGENTS.md
-  LICENSE
-  README.md
-  pyproject.toml
-  grid_silicon.py       # root shim for python -m grid_silicon
-  src/grid_silicon/     # parser, scorer, cli, validators
-  data/fixtures/ercot/2026-05/
-  reports/2026-05.jsonl
-  schemas/
-  scripts/
-  tests/
-  specs/
-    0001-foundation/
-    0002-design/
-  decisions/DEC-GRDS-001-realness-score-schema.md
+src/grid_silicon/     parser, scorer, cli, validators
+data/fixtures/ercot/  the committed ERCOT-shaped fixture
+reports/2026-05.jsonl the one phantom-vs-real row v0.1 ships
+schemas/  scripts/  tests/  specs/  decisions/
 ```
 
-## compounds with
-
-- InterconnectAlpha as the survival-model and capacity-curve analytics module.
-- SiteAtlas as the civic-data frontend over the same project graph.
-- RatepayerExposure as the bill-impact derivative.
-- Siting optimization lab as the optimization input layer.
-- FabRiskRADAR via the shared chip-supply-chain-map infrastructure.
-- WaferToWatt as the silicon-side complement.
-
-## license
+## License
 
 MIT. See [LICENSE](LICENSE).
