@@ -56,16 +56,30 @@ def _read_csv(path: Path, required: set[str]) -> list[dict[str, str]]:
         return [dict(row) for row in reader]
 
 
+def _as_float(path: Path, row_no: int, field: str, value: str) -> float:
+    try:
+        return float(value)
+    except ValueError:
+        raise ValueError(f"{path}: row {row_no}: {field} is not a number: {value!r}") from None
+
+
+def _as_int(path: Path, row_no: int, field: str, value: str) -> int:
+    try:
+        return int(value)
+    except ValueError:
+        raise ValueError(f"{path}: row {row_no}: {field} is not an integer: {value!r}") from None
+
+
 def load_queue(path: Path) -> list[QueueProject]:
     rows = _read_csv(path, REQUIRED_QUEUE_COLUMNS)
     projects: list[QueueProject] = []
-    for row in rows:
+    for i, row in enumerate(rows, start=1):
         projects.append(
             QueueProject(
                 project_id_raw=row["project_id_raw"].strip(),
                 project_name=row["project_name"].strip(),
                 county=row["county"].strip(),
-                mw_requested=float(row["mw_requested"]),
+                mw_requested=_as_float(path, i, "mw_requested", row["mw_requested"]),
                 requested_in_service=row["requested_in_service"].strip(),
                 status_code=row["status_code"].strip(),
                 last_updated=row["last_updated"].strip(),
@@ -77,10 +91,10 @@ def load_queue(path: Path) -> list[QueueProject]:
 def load_observations(path: Path) -> dict[str, EnergizationObservation]:
     rows = _read_csv(path, REQUIRED_OBSERVATION_COLUMNS)
     out: dict[str, EnergizationObservation] = {}
-    for row in rows:
+    for i, row in enumerate(rows, start=1):
         obs = EnergizationObservation(
             project_id_raw=row["project_id_raw"].strip(),
-            observed_energized_mw=float(row["observed_energized_mw"]),
+            observed_energized_mw=_as_float(path, i, "observed_energized_mw", row["observed_energized_mw"]),
             approval_status=row["approval_status"].strip(),
             observed_on=row["observed_on"].strip(),
         )
@@ -91,7 +105,7 @@ def load_observations(path: Path) -> dict[str, EnergizationObservation]:
 def load_evidence(path: Path) -> dict[str, list[EvidenceItem]]:
     rows = _read_csv(path, REQUIRED_EVIDENCE_COLUMNS)
     grouped: dict[str, list[EvidenceItem]] = {}
-    for row in rows:
+    for i, row in enumerate(rows, start=1):
         item = EvidenceItem(
             evidence_id=row["evidence_id"].strip(),
             project_id_raw=row["project_id_raw"].strip(),
@@ -99,7 +113,7 @@ def load_evidence(path: Path) -> dict[str, list[EvidenceItem]]:
             label=row["label"].strip(),
             source_url=row["source_url"].strip(),
             extracted_on=row["extracted_on"].strip(),
-            weight=int(row["weight"]),
+            weight=_as_int(path, i, "weight", row["weight"]),
         )
         grouped.setdefault(item.project_id_raw, []).append(item)
     return grouped

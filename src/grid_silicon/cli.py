@@ -5,8 +5,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import json
-
 from .ercot import (
     default_fixture_dir,
     load_evidence,
@@ -14,7 +12,7 @@ from .ercot import (
     load_queue,
     require_live_fetch_allowed,
 )
-from .report import write_jsonl
+from .report import read_jsonl, write_jsonl
 from .scoring import build_report_rows
 from .validation import validate_reports
 
@@ -34,7 +32,12 @@ def _run_show(args: argparse.Namespace) -> int:
     path = Path(args.report) if args.report else _latest_report(root)
     if path is None or not path.is_file():
         raise SystemExit("no report found under reports/*.jsonl — run `ingest --month <m> --dry-run` first")
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    try:
+        rows = read_jsonl(path)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"cannot read report {path}: {exc}")
+    if not rows:
+        raise SystemExit(f"{path} has no report rows")
     rows.sort(key=lambda r: r.get("phantom_mw", 0), reverse=True)
     print(f"grid-silicon — datacenter-load realness, {path.stem} ({rows[0].get('iso', '?').upper()})")
     print(f"{len(rows)} project(s), ranked by phantom MW (announced minus observed-energized)\n")
@@ -67,9 +70,19 @@ def _run_ingest(args: argparse.Namespace) -> int:
     if not args.dry_run:
         require_live_fetch_allowed(user_agent=args.user_agent)
     fixture_dir = Path(args.fixture_dir) if args.fixture_dir else default_fixture_dir(root, args.month)
-    queue = load_queue(fixture_dir / "queue.csv")
-    observations = load_observations(fixture_dir / "energization.csv")
-    evidence = load_evidence(fixture_dir / "evidence.csv")
+    try:
+        queue = load_queue(fixture_dir / "queue.csv")
+        observations = load_observations(fixture_dir / "energization.csv")
+        evidence = load_evidence(fixture_dir / "evidence.csv")
+    except FileNotFoundError as exc:
+        # missing dir/file: point the caller at how to supply fixtures rather than dumping a traceback
+        raise SystemExit(
+            f"fixture not found: {exc}. Pass --fixture-dir or place CSVs under "
+            f"data/fixtures/ercot/<month>/"
+        )
+    except (OSError, ValueError) as exc:
+        # unreadable path (e.g. a dir where a CSV was expected) or a bad CSV value
+        raise SystemExit(f"cannot read fixture in {fixture_dir}: {exc}")
     rows = build_report_rows(
         month=args.month,
         projects=queue,
