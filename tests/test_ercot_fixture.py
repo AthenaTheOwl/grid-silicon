@@ -7,6 +7,7 @@ import pytest
 from grid_silicon.ercot import load_evidence, load_observations, load_queue
 
 FIXTURE = Path("data/fixtures/ercot/2026-05")
+JUNE_FIXTURE = Path("data/fixtures/ercot/2026-06")
 
 QUEUE_HEADER = (
     "project_id_raw,project_name,county,mw_requested,"
@@ -71,3 +72,14 @@ def test_load_queue_non_numeric_mw_raises(tmp_path) -> None:
         load_queue(path)
     assert "mw_requested" in str(excinfo.value)
     assert "NOTANUMBER" in str(excinfo.value)
+
+
+def test_june_fixture_advances_observed_mw_without_changing_announced_load() -> None:
+    may_project = load_queue(FIXTURE / "queue.csv")[0]
+    june_project = load_queue(JUNE_FIXTURE / "queue.csv")[0]
+    may_observation = load_observations(FIXTURE / "energization.csv")[may_project.project_id_raw]
+    june_observation = load_observations(JUNE_FIXTURE / "energization.csv")[june_project.project_id_raw]
+
+    assert june_project.project_id_raw == may_project.project_id_raw
+    assert june_project.mw_requested == may_project.mw_requested
+    assert june_observation.observed_energized_mw > may_observation.observed_energized_mw
