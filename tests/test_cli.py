@@ -127,3 +127,76 @@ def test_show_malformed_report_exits_clean(tmp_path: Path) -> None:
     assert result.returncode != 0
     assert "Traceback" not in result.stderr
     assert "cannot read report" in result.stderr
+
+
+def test_compare_reports_prints_derived_month_delta(tmp_path: Path) -> None:
+    may = tmp_path / "2026-05.jsonl"
+    june = tmp_path / "2026-06.jsonl"
+    for month, out in [("2026-05", may), ("2026-06", june)]:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "grid_silicon",
+                "ingest",
+                "--iso",
+                "ercot",
+                "--month",
+                month,
+                "--dry-run",
+                "--out",
+                str(out),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    may_row = json.loads(may.read_text(encoding="utf-8").splitlines()[0])
+    june_row = json.loads(june.read_text(encoding="utf-8").splitlines()[0])
+    observed_delta = int(june_row["mw_observed_energized"] - may_row["mw_observed_energized"])
+    phantom_delta = int(june_row["phantom_mw"] - may_row["phantom_mw"])
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "grid_silicon",
+            "compare",
+            "--before",
+            str(may),
+            "--after",
+            str(june),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "month-over-month delta" in result.stdout
+    assert f"{observed_delta:+d}MW" in result.stdout
+    assert f"{phantom_delta:+d}MW" in result.stdout
+    assert "less phantom" in result.stdout
+
+
+def test_compare_without_overlap_exits_clean(tmp_path: Path) -> None:
+    before = tmp_path / "before.jsonl"
+    after = tmp_path / "after.jsonl"
+    before.write_text('{"project_id":"a","month":"2026-05"}\n', encoding="utf-8")
+    after.write_text('{"project_id":"b","month":"2026-06"}\n', encoding="utf-8")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "grid_silicon",
+            "compare",
+            "--before",
+            str(before),
+            "--after",
+            str(after),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "Traceback" not in result.stderr
+    assert "no overlapping project_id" in result.stderr

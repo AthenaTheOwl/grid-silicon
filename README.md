@@ -15,7 +15,7 @@ sit in separate places where nobody has added them up.
 
 grid-silicon adds them up. It takes a published large-load project, scores it 0 to
 100 on how real it is, and shows the five sourced pieces of evidence behind the
-score. v0.1 ships one ERCOT month as a checked-in report. The model and the scorer
+score. v0.1 ships two ERCOT months as checked-in reports. The model and the scorer
 are the point; the data adapter is deliberately small.
 
 It refuses to fetch the live ERCOT portal, by the way. The portal wants terms
@@ -44,6 +44,23 @@ yet energized (5 sourced evidence rows). realness 37/100.
 
 Ranked by phantom MW, worst offender first. A project at the top of that list is an
 announcement; a project at the bottom is a build.
+
+The second report turns the static row into movement. Generate June, then compare
+May against June:
+
+```powershell
+python -m grid_silicon ingest --iso ercot --month 2026-06 --dry-run
+python -m grid_silicon compare --before reports/2026-05.jsonl --after reports/2026-06.jsonl
+```
+
+```
+grid-silicon - month-over-month delta, 2026-05 -> 2026-06
+1 overlapping project(s); total phantom delta -240MW
+
+project                               energized            phantom         score  movement
+------------------------------------------------------------------------------------------
+Lone Star Compute Campus                +240MW            -240MW        +24pts  less phantom
+```
 
 ## Live demo
 
@@ -93,7 +110,7 @@ python -m pytest tests/ -q
 ```
 src/grid_silicon/     parser, scorer, cli, validators
 data/fixtures/ercot/  the committed ERCOT-shaped fixture
-reports/2026-05.jsonl the one phantom-vs-real row v0.1 ships
+reports/*.jsonl       monthly phantom-vs-real rows and deltas
 schemas/  scripts/  tests/  specs/  decisions/
 ```
 

@@ -1,0 +1,6 @@
+evidence_id,project_id_raw,category,label,source_url,extracted_on,weight
+EV-GRDS-006,LL-2026-001,queue_status,ERCOT fixture status advanced to planning studies approved,https://www.ercot.com/services/rq/large-load-integration,2026-06-30,3
+EV-GRDS-007,LL-2026-001,energization,Fixture observation records additional energized load,https://www.ercot.com/services/mdt/data-portal,2026-06-30,2
+EV-GRDS-008,LL-2026-001,permit,County permit fixture records updated site activity,https://www.ercot.com/files/docs/2026/03/12/March-TAC-Report.pdf,2026-06-30,2
+EV-GRDS-009,LL-2026-001,equipment,Transformer procurement fixture now records a dated commitment,https://www.nerc.com/globalassets/who-we-are/standing-committees/rstc/whitepaper-characteristics-and-risks-of-emerging-large-loads.pdf,2026-06-30,2
+EV-GRDS-010,LL-2026-001,counterparty,Counterparty fixture remains unnamed in public material,https://www.ercot.com/files/docs/2026/04/09/ERCOTLargeLoadUpdate-April9HouseStateAffairsHearing.pdf,2026-06-30,1

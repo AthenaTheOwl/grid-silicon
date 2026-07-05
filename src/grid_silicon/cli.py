@@ -35,7 +35,7 @@ def _run_show(args: argparse.Namespace) -> int:
     try:
         rows = read_jsonl(path)
     except (OSError, ValueError) as exc:
-        raise SystemExit(f"cannot read report {path}: {exc}")
+        raise SystemExit(f"cannot read report {path}: {exc}") from None
     if not rows:
         raise SystemExit(f"{path} has no report rows")
     rows.sort(key=lambda r: r.get("phantom_mw", 0), reverse=True)
@@ -63,6 +63,80 @@ def _run_show(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def _as_number(row: dict[str, object], key: str) -> float:
+    value = row.get(key, 0)
+    if isinstance(value, (int, float)):
+        return float(value)
+    return 0.0
+
+
+def _rows_by_project(rows: list[dict[str, object]]) -> dict[str, dict[str, object]]:
+    out: dict[str, dict[str, object]] = {}
+    for row in rows:
+        project_id = row.get("project_id")
+        if isinstance(project_id, str) and project_id:
+            out[project_id] = row
+    return out
+
+
+def _run_compare(args: argparse.Namespace) -> int:
+    before_path = Path(args.before)
+    after_path = Path(args.after)
+    try:
+        before_rows = read_jsonl(before_path)
+        after_rows = read_jsonl(after_path)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"cannot read comparison report: {exc}") from None
+    before_by_project = _rows_by_project(before_rows)
+    after_by_project = _rows_by_project(after_rows)
+    project_ids = sorted(set(before_by_project) & set(after_by_project))
+    if not project_ids:
+        raise SystemExit("no overlapping project_id values between the two reports")
+
+    before_month = before_rows[0].get("month", before_path.stem) if before_rows else before_path.stem
+    after_month = after_rows[0].get("month", after_path.stem) if after_rows else after_path.stem
+    total_before = sum(_as_number(row, "phantom_mw") for row in before_by_project.values())
+    total_after = sum(_as_number(row, "phantom_mw") for row in after_by_project.values())
+    total_delta = total_after - total_before
+
+    comparisons = []
+    for project_id in project_ids:
+        previous = before_by_project[project_id]
+        current = after_by_project[project_id]
+        comparisons.append((
+            abs(_as_number(current, "phantom_mw") - _as_number(previous, "phantom_mw")),
+            project_id,
+            previous,
+            current,
+        ))
+    comparisons.sort(reverse=True)
+
+    print(f"grid-silicon - month-over-month delta, {before_month} -> {after_month}")
+    print(f"{len(project_ids)} overlapping project(s); total phantom delta {total_delta:+.0f}MW\n")
+    header = f"{'project':<28} {'energized':>18} {'phantom':>18} {'score':>13}  movement"
+    print(header)
+    print("-" * len(header))
+    for _magnitude, project_id, previous, current in comparisons:
+        observed_delta = _as_number(current, "mw_observed_energized") - _as_number(previous, "mw_observed_energized")
+        phantom_delta = _as_number(current, "phantom_mw") - _as_number(previous, "phantom_mw")
+        score_delta = _as_number(current, "realness_score") - _as_number(previous, "realness_score")
+        if phantom_delta < 0:
+            movement = "less phantom"
+        elif phantom_delta > 0:
+            movement = "more phantom"
+        else:
+            movement = "flat"
+        print(
+            f"{str(current.get('project_name', project_id))[:28]:<28} "
+            f"{observed_delta:>+15.0f}MW "
+            f"{phantom_delta:>+15.0f}MW "
+            f"{score_delta:>+10.0f}pts  "
+            f"{movement}"
+        )
+    return 0
+
+
 def _run_ingest(args: argparse.Namespace) -> int:
     root = _repo_root()
     if args.iso != "ercot":
@@ -79,10 +153,10 @@ def _run_ingest(args: argparse.Namespace) -> int:
         raise SystemExit(
             f"fixture not found: {exc}. Pass --fixture-dir or place CSVs under "
             f"data/fixtures/ercot/<month>/"
-        )
+        ) from None
     except (OSError, ValueError) as exc:
         # unreadable path (e.g. a dir where a CSV was expected) or a bad CSV value
-        raise SystemExit(f"cannot read fixture in {fixture_dir}: {exc}")
+        raise SystemExit(f"cannot read fixture in {fixture_dir}: {exc}") from None
     rows = build_report_rows(
         month=args.month,
         projects=queue,
@@ -130,6 +204,10 @@ def build_parser() -> argparse.ArgumentParser:
     show = sub.add_parser("show", help="print a readable ranked view of the latest report")
     show.add_argument("--report", default=None, help="path to a report jsonl (default: latest under reports/)")
     show.set_defaults(func=_run_show)
+    compare = sub.add_parser("compare", help="compare two monthly reports by project_id")
+    compare.add_argument("--before", required=True, help="earlier reports/<month>.jsonl file")
+    compare.add_argument("--after", required=True, help="later reports/<month>.jsonl file")
+    compare.set_defaults(func=_run_compare)
     return parser
 
 
