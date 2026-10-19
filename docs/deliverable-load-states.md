@@ -11,4 +11,3 @@ The next proposed fixture should move one project through these states, with an 
 ## References
 
 - https://www.ferc.gov/explainer-interconnection-final-rule
-- https://github.com/3orionkings/ai-product-team/blob/main/workflows/process-change.md
