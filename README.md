@@ -117,3 +117,7 @@ schemas/  scripts/  tests/  specs/  decisions/
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Method update
+
+[October method update: Separate energized load from contractual capacity](docs/deliverable-load-states.md).
