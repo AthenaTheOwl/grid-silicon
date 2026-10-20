@@ -105,19 +105,20 @@ python -m pytest tests/ -q
 
 `--dry-run` means "use the committed fixture." It still writes the output artifact.
 
+## Method update
+
+[October method update: Separate energized load from contractual capacity](docs/deliverable-load-states.md).
+
 ## Layout
 
 ```
 src/grid_silicon/     parser, scorer, cli, validators
 data/fixtures/ercot/  the committed ERCOT-shaped fixture
 reports/*.jsonl       monthly phantom-vs-real rows and deltas
+docs/                 method notes
 schemas/  scripts/  tests/  specs/  decisions/
 ```
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## Method update
-
-[October method update: Separate energized load from contractual capacity](docs/deliverable-load-states.md).
